@@ -24,7 +24,7 @@ This repository is complete through **Phase P3**: **Domain Layer** (P1), **Provi
 - Real Raja adapter, automatic browser, live booking.
 - Balance tracking, timeouts, queues, persistent database and durable crash recovery.
 - Any code or hypotheses about endpoints, credentials, or approved Raja rates.
-- Any bank-card details are accepted or stored; the simulator has no such path.
+- No bank-card details are accepted or stored; the simulator has no such path.
 
 ## Project Structure
 
