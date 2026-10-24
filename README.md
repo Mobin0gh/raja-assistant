@@ -1,312 +1,182 @@
-# دستیار رزرو بلیت قطار رجا — فازهای P1 تا P3
+# Raja Assistant — Train Ticket Reservation Orchestrator (Phases P1–P3)
 
-این مخزن تا پایان فاز **P3** پیش رفته است: **هستهٔ دامنه** (P1)، **قرارداد ارائه‌دهنده
-و شبیه‌ساز قطعی** (P2)، و **لایهٔ هماهنگ‌سازی (orchestration)** (P3).
+This repository is complete through **Phase P3**: **Domain Layer** (P1), **Provider Contract and Deterministic Simulator** (P2), and **Orchestration Service** (P3).
 
-> **هشدار مهم:** هیچ اتصالی به رجا وجود ندارد و چیزی به آن فرستاده نمی‌شود. هیچ
-> درخواست شبکه‌ای، هیچ ذخیره‌سازی ماندگار، هیچ زمان‌بندی و هیچ پرداختی پیاده‌سازی نشده
-> است. تنها ارائه‌دهندهٔ موجود یک شبیه‌ساز محلی است و همهٔ شماره‌های مرجعی که تولید
-> می‌کند کاملاً ساختگی‌اند (`SIM-…`). موفقیت یک رزرو تنها زمانی پذیرفته می‌شود که همین
-> شبیه‌ساز یا یک تست، آن را با «شمارهٔ مرجع ارائه‌دهنده» تأیید کند.
+> **Important: This is a simulation-only project. No real Raja connection exists. No network requests are sent, no persistent storage is used, no scheduling or payment processing is implemented. The only available provider is a local simulator, and all reference numbers it produces are purely fake (`SIM-…`). A reservation is only considered successful when the simulator or a test confirms it with a "provider reference".**
 
-## آنچه تا اینجا ساخته شده است
+## What Has Been Built So Far
 
-- ساختار بستهٔ پایتون زیر `src/raja_assistant/` با مرز مشخص بین دامنه و بقیهٔ لایه‌ها.
-- مدل‌های دامنه: ترجیحات سفر، ایستگاه، کلاس ظرفیت، سرویس قطار، مشاهدهٔ ظرفیت،
-  مرجع مستعار مسافر، قصد رزرو و خود رزرو.
-- ماشین حالت قطعی رزرو با ۱۱ وضعیت، جدول گذار صریح و گاردهای جداگانه.
-- خطاهای نوع‌دار دامنه (`ValidationError`، `IllegalTransition`، `GuardViolation` با
-  دلیل پایدار).
-- ابزار تولید کلید idempotency به‌صورت قطعی (بر پایهٔ SHA-256 و ورودی‌های منطقی).
-- تست‌های واحد برای همهٔ گذارهای مجاز، همهٔ گذارهای غیرمجاز، وضعیت‌های پایانی،
-  گاردها و ثابت‌های ضد رزرو تکراری.
-- **قرارداد ارائه‌دهنده** (`application/ports/`) با مدل‌های درخواست/نتیجه و خطاهای نوع‌دار.
-- **شبیه‌ساز قطعی** (`adapters/simulator/`) با تزریق خطای صریح و بدون هیچ تماس شبکه‌ای.
-- تست‌های سازگاری شبیه‌ساز با ماشین حالت، و تست‌های ماشینی مرزهای لایه‌ها.
-- **لایهٔ هماهنگ‌سازی** (`application/`): سرویس رزرو، نگاشت نتیجه به رویداد، سیاست
-  پیشنهادها، انبار درون‌حافظه‌ای، دفتر تضاد و قرنطینه.
-- تست‌های سرویس (جریان کامل، عدم ارسال دوباره، قفل تضاد، تطبیق) و کنترل‌های
-  ساختاری با شواهد منفی.
+- Python package structure under `src/raja_assistant/` with a clear boundary between domain and other layers.
+- Domain models: travel preferences, stations, capacity class, train service, capacity observation, passenger alias reference, reservation intent, and the reservation itself.
+- Reserve state machine with 11 states, explicit transition table, and separate guards.
+- Domain-typed errors (`ValidationError`, `IllegalTransition`, `GuardViolation` with stable reasons).
+- Deterministic idempotency key generation based on SHA-256 and logical inputs.
+- Unit tests for all allowed transitions, all disallowed transitions, final states, guards, and anti-duplicate-reservation constants.
+- **Provider contract** (`application/ports/`) with request/response models and typed errors.
+- **Deterministic simulator** (`adapters/simulator/`) with explicit error injection and no network calls.
+- Simulator compatibility tests with the state machine, and machine-layer boundary tests.
+- **Orchestration layer** (`application/`): reservation service, result-to-event mapping, policies, in-memory store, conflict ledger, and quarantine.
+- Service tests (full workflow, no resubmission, conflict latch, reconciliation) and structural checks with negative controls.
+- **Reserve state machine** with 11 states and allowed transitions documented.
 
-## آنچه عمداً ساخته نشده است
+## What Has Been Deliberately Not Built
 
-- آداپتور واقعی رجا، مرورگر خودکار، پرداخت، رزرو زنده.
-- پایش موجودی، زمان‌بند، صف، پایگاه دادهٔ ماندگار و رابط کاربری (فازهای بعد از P3).
-- بازیابی پس از سقوط فرایند؛ وضعیت P3 فقط درون حافظه است.
-- هیچ کد یا فرضی دربارهٔ endpoint، اعتبارنامه یا نرخ مجاز رجا وجود ندارد.
-- هیچ جزئیات کارت بانکی پذیرفته یا ذخیره نمی‌شود؛ شبیه‌ساز اصلاً چنین مسیری ندارد.
+- Real Raja adapter, automatic browser, live booking.
+- Balance tracking, timeouts, queues, persistent database and durable crash recovery.
+- Any code or hypotheses about endpoints, credentials, or approved Raja rates.
+- Any bank-card details are accepted or stored; the simulator has no such path.
 
-## ساختار پروژه
+## Project Structure
 
-```
+```text
 src/raja_assistant/
-├─ domain/                  # هیچ وابستگی بیرونی ندارد
-│  ├─ errors.py            # خطاهای نوع‌دار و دلایل گارد
-│  ├─ validation.py        # کمک‌تابع‌های اعتبارسنجی
+├─ domain/                  # no outer dependencies
+│  ├─ errors.py            # typed errors and guard reasons
+│  ├─ validation.py        # validation helper functions
 │  ├─ models/
-│  │  ├─ preferences.py    # ایستگاه، کلاس ظرفیت، ترجیحات سفر
-│  │  ├─ service.py        # سرویس قطار و مشاهدهٔ ظرفیت
-│  │  ├─ passenger.py      # مرجع مستعار مسافر (بدون داده شخصی)
-│  │  └─ reservation.py    # قصد رزرو و aggregate رزرو
+│  │  ├─ preferences.py    # station, capacity class, travel preferences
+│  │  ├─ service.py        # train service and capacity observation
+│  │  ├─ passenger.py      # passenger alias reference (no personal data)
+│  │  └─ reservation.py    # reservation intent and aggregate reservation
 │  └─ reservation/
-│     ├─ states.py         # ۱۱ وضعیت و تفکیک پایانی/در جریان
-│     ├─ events.py         # رویدادها و محمولهٔ شواهد
-│     ├─ guards.py         # گاردها و بافت اجرا
-│     ├─ transitions.py    # جدول گذار و تابع transition
-│     └─ idempotency.py    # کلید قطعی idempotency
-├─ application/             # فقط به domain وابسته است
-│  ├─ service.py           # سرویس هماهنگ‌سازی و رجیستری فرمان‌های تغییردهنده
-│  ├─ mapping.py           # تنها نگاشت نتیجهٔ ارائه‌دهنده به رویداد ماشین حالت
-│  ├─ offers.py            # سیاست پیشنهادها (قیمت هر مسافر، پنجرهٔ حرکت، ظرفیت)
-│  ├─ models.py            # رکورد ذخیره‌شده و نمای خواندنی
-│  ├─ store.py             # انبار درون‌حافظه‌ای با ذخیرهٔ اتمیک هر رکورد
-│  ├─ conflicts.py         # دفتر تضاد و قرنطینهٔ درون‌فرایندی
-│  ├─ errors.py            # خطاهای نوع‌دار لایهٔ هماهنگ‌سازی
+│     ├─ states.py         # 11 states and final/in-progress split
+│     ├─ events.py         # events and evidence payload
+│     ├─ guards.py         # guards and execution wrapper
+│     ├─ transitions.py    # transition table and transition function
+│     └─ idempotency.py    # deterministic idempotency key
+├─ application/             # depends only on domain
+│  ├─ service.py           # orchestration service and command registry
+│  ├─ mapping.py           # sole mapping from provider result to state-event
+│  ├─ offers.py            # pricing per passenger, movement window, capacity
+│  ├─ models.py            # stored record and readable view
+│  ├─ store.py             # in-memory store with atomic per-record persistence
+│  ├─ conflicts.py         # in-memory conflict ledger and in-process quarantine
+│  ├─ errors.py            # typed errors for the orchestration layer
 │  └─ ports/
-│     ├─ errors.py         # خطاهای قرارداد ارائه‌دهنده
-│     ├─ models.py         # درخواست‌ها، نتیجه‌ها، واژگان outcome
-│     └─ provider.py       # پروتکل ReservationProvider و تعهدهای آداپتور
-└─ adapters/                # فقط به application و domain وابسته است
+│     ├─ errors.py         # provider contract errors
+│     ├─ models.py         # requests, outcomes, vocabulary
+│     └─ provider.py       # ReservationProvider protocol and adapter obligations
+└─ adapters/
    └─ simulator/
-      ├─ fixtures.py       # دادهٔ ثابت و کاملاً ساختگی
-      ├─ faults.py         # سوئیچ‌های خطای قطعی
-      ├─ records.py        # رکورد داخلی شبیه‌ساز
-      └─ provider.py       # پیاده‌سازی درون‌حافظه‌ای
-
+      ├─ fixtures.py       # completely fake static data
+      ├─ faults.py         explicit error switches
+      ├─ records.py        # internal simulator record
+      └─ provider.py       # in-memory implementation
 tests/
-├─ conftest.py             # قفل شبکه برای تمام تست‌ها
-├─ support.py              # سازنده‌های قطعی دامنه
-├─ provider_support.py     # سازنده‌های قطعی ارائه‌دهنده
+├─ conftest.py             # network guard for all tests (blocks socket creation)
+├─ support.py              # deterministic domain builders
+├─ provider_support.py     # deterministic provider builders
 └─ unit/
-   ├─ test_domain_purity.py     # قاعدهٔ وابستگی دامنه
-   ├─ test_layer_boundaries.py  # مرز لایه‌ها، ممنوعیت شبکه/ساعت/تصادف
-   ├─ domain/                   # مدل، ماشین حالت، گاردها، idempotency
-   ├─ application/              # مدل‌های قرارداد و پروتکل
-   └─ adapters/simulator/       # جست‌وجو، ارسال، تطبیق، قطعیت، سازگاری
+   ├─ test_domain_purity.py         # domain-dependency rule
+   ├─ test_layer_boundaries.py     # layer prohibitions: no network/clock/coincidence
+   ├─ domain/                     # models, state machine, guards, idempotency
+   ├─ application/                 # contract and protocol tests
+   └─ adapters/simulator/          # search, submit, reconciliation, certainty, compat
 ```
 
-## فاز P2: قرارداد ارائه‌دهنده و شبیه‌ساز
+## Phase P2: Provider Contract and Simulator
 
-### قرارداد (`application/ports/`)
+### Contract (`application/ports/`)
 
-سه عملیات، و نه بیشتر:
+Three operations, and no more:
 
-| عملیات | معنا |
+| Operation | Meaning |
 |---|---|
-| `search(preferences, now=…)` | سرویس‌های موجود برای ترجیحات اعتبارسنجی‌شده |
-| `submit(request)` | ثبت یک تلاش، با کلید idempotency |
-| `lookup(request)` | گزارش وضعیت یک تلاش قبلی، با همان کلید |
+| `search(preferences, now=…)` | Services available for validated preferences |
+| `submit(request)` | Record one attempt, with idempotency key |
+| `lookup(request)` | Report status of a prior attempt, with the same key |
 
-نتیجه‌ها **مقدار** هستند، نه استثنا. هر نتیجه یک `outcome` پایدار دارد:
+Every result has a stable `outcome`:
 
-| نتیجه | معنا |
+| Outcome | Meaning |
 |---|---|
-| `SearchSucceeded` | جست‌وجو انجام شد (ممکن است صفر سرویس باشد) |
-| `ReservationConfirmed` | رزرو وجود دارد و «شمارهٔ مرجع ارائه‌دهنده» دارد |
-| `ReservationHeld` | صندلی موقتاً نگه داشته شده و مهلت دارد |
-| `ReservationPending` | پذیرفته شده ولی هنوز تصمیم گرفته نشده |
-| `ReservationRejected` | رد قطعی؛ چیزی رزرو نشده |
-| `ReservationNotFound` | پاسخ قطعی جست‌وجو: رزروی وجود ندارد |
-| `SubmissionOutcomeUnknown` | ممکن است رزرو شده باشد؛ **فقط** با `lookup` حل می‌شود |
-| `ProviderUnavailable` | شرایط موقت؛ هیچ چیز دربارهٔ رزرو دانسته نیست |
+| `SearchSucceeded` | Search performed (may yield zero services) |
+| `ReservationConfirmed` | Reservation exists with "provider reference" |
+| `ReservationHeld` | Seat temporarily held; it has a deadline |
+| `ReservationPending` | Accepted but not yet decided |
+| `ReservationRejected` | Definitive refusal; nothing was booked |
+| `ReservationNotFound` | Definitive lookup: no reservation exists |
+| `SubmissionOutcomeUnknown` | May have been booked; only resolvable via `lookup` |
+| `ProviderUnavailable` | Temporary condition; nothing is known about the reservation |
 
-خطاها فقط برای نقض قرارداد هستند: `ProviderNotAuthorized`، `CapabilityUnsupported`،
-`ProviderContractError`، `DuplicateSubmissionAttempt`. این‌ها هرگز به معنی «رد شد» نیستند.
+Errors are only contract violations: `ProviderNotAuthorized`, `CapabilityUnsupported`, `ProviderContractError`, `DuplicateSubmissionAttempt`. None of these mean "rejected".
 
-**قاعدهٔ کلیدی:** کلید idempotency از دامنه می‌آید و `SubmissionRequest` اجازه نمی‌دهد
-کلیدی ساخته شود که به همان درخواست تعلق ندارد. بنابراین ارسال دوبارهٔ همان درخواست
-همان پاسخ اول را برمی‌گرداند و هرگز رزرو دوم نمی‌سازد؛ و تلاش با epoch تازه برای همان
-قصد، با `DuplicateSubmissionAttempt` رد می‌شود تا «تلاش دوباره با کلید تازه» ممکن نباشد.
+**Key rule**: The idempotency key comes from the domain and `SubmissionRequest` refuses to build a key that does not match its intent. Therefore a re-send of the same request returns the first outcome and never creates a second reservation; and a fresh attempt for the same intent, with a new epoch, produces a new key and may be rejected as `DuplicateSubmissionAttempt`.
 
-### شبیه‌ساز (`adapters/simulator/`)
+### Simulator (`adapters/simulator/`)
 
-- دادهٔ ثابت و ساختگی: پنج سرویس با شناسه‌های `sim-…`، شامل یک سرویس کاملاً موجود،
-  یک سرویس با کلاس تجاری فروش‌رفته، یک سرویس با کلاس اقتصادی فروش‌رفته، یک تاریخ دوم
-  و یک مسیر برگشت.
-- بدون شبکه، بدون فایل، بدون ساعت سیستم و بدون تصادف: هر زمان از فراخواننده گرفته
-  می‌شود و مرجع رزرو تابعی قطعی از کلید idempotency است (`SIM-` + ده رقم هش).
-- ارسال موفق از ظرفیت کم می‌کند، پس حالت پس از یک دنبالهٔ فراخوانی، تابع همان دنباله است.
+- Fixed fake data: five services with `sim-…` IDs, including one fully available, one business-class sold out, one economy sold out, a second date, and a return path.
+- No network, no file, no system clock, no race: whenever the caller takes it, the reservation reference is a deterministic function of the idempotency key (`SIM-` + 10-digit hash).
+- Successful submission reduces capacity; subsequent calls follow the same sequence.
 
-### تزریق خطا
+### Error Injection
 
-هر سناریو یک سوئیچ صریح است؛ هیچ خطای تصادفی و هیچ تأخیر واقعی وجود ندارد. حداکثر یک
-سوئیچ ارسال و یک سوئیچ تطبیق می‌تواند فعال باشد و ترکیب متناقض با `ProviderContractError`
-رد می‌شود.
+Every scenario has an explicit switch; no random errors and no real delays. At most one submit switch and one lookup switch may be active, and a contradictory combination with `ProviderContractError` is rejected.
 
-| سوئیچ | رفتار |
+| Switch | Behavior |
 |---|---|
-| `search_unavailable` | `ProviderUnavailable` برای جست‌وجو |
-| `submit_unavailable` | `ProviderUnavailable`؛ هیچ رکوردی ساخته نمی‌شود |
+| `search_unavailable` | `ProviderUnavailable` for search |
+| `submit_unavailable` | `ProviderUnavailable`; no record is created |
 | `submit_rejected` | `ReservationRejected(reason="simulated_rejection")` |
-| `submit_outcome_unknown` | رزرو **درون شبیه‌ساز ثبت می‌شود** ولی `SubmissionOutcomeUnknown` برمی‌گردد |
-| `submit_pending` | `ReservationPending` و رکورد `pending` |
-| `submit_holds_seats` | `ReservationHeld` با مهلت ثابت ۳۰ دقیقه |
-| `lookup_unavailable` | `ProviderUnavailable` برای تطبیق (هیچ چیز حل نمی‌شود) |
-| `lookup_reports_not_found` | `ReservationNotFound` حتی وقتی رکورد وجود دارد |
+| `submit_outcome_unknown` | Reservation **is recorded** in the simulator but `SubmissionOutcomeUnknown` is returned |
+| `submit_pending` | `ReservationPending` and a `pending` record |
+| `submit_holds_seats` | `ReservationHeld` with fixed 30-minute deadline |
+| `lookup_unavailable` | `ProviderUnavailable` for lookup (nothing is resolved) |
+| `lookup_reports_not_found` | `ReservationNotFound` even when a record exists |
 
-سناریوی مهم: با `submit_outcome_unknown`، شبیه‌ساز واقعاً رزرو را ثبت می‌کند و بعد پاسخ
-را «نامعلوم» گزارش می‌کند. `lookup` با همان کلید، همان شمارهٔ مرجع را برمی‌گرداند. ارسال
-دوباره بدون تطبیق، همان پاسخ نامعلوم را تکرار می‌کند و رزرو دوم نمی‌سازد.
+**Important scenario**: With `submit_outcome_unknown`, the simulator actually records the reservation and then returns "unknown" as the answer. `lookup` with the same key returns the same reference. Re-sending without lookup repeats the unknown answer and never creates a second reservation.
 
-## پیش‌نیازها
+## Phase P3: Orchestration Layer
 
-- ویندوز ۱۰ یا ۱۱
-- Python 3.12 یا بالاتر (سینتکس پروژه با ۳٫۱۲ سازگار است)
+### Service (`application/service.py`)
 
-## راه‌اندازی در ویندوز
+The orchestration layer connects domain models and the provider contract. No clock, no network, no database, no event loop are in it: every command takes `now` from the caller and makes at most one provider call.
 
-```bat
-py -3.12 -m venv .venv
-.venv\Scripts\activate
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
-```
-
-اگر `py -3.12` در دسترس نبود، از همان `python` نسخهٔ ۳٫۱۲ به بالا استفاده کنید.
-
-## اجرای تست‌ها
-
-```bat
-python -m pytest -v
-python -m pytest -q
-python -m pytest tests\unit\domain\test_state_machine.py -v
-python -m pytest tests\unit\adapters\simulator -v
-```
-
-هیچ تستی به اینترنت نیاز ندارد. `tests/conftest.py` تمام ساخت سوکت را در طول اجرای
-تست‌ها مسدود می‌کند، پس هر تماس شبکه‌ای ناخواسته با `AssertionError` شکست می‌خورد.
-
-## بررسی کیفیت کد
-
-```bat
-python -m ruff check .
-python -m ruff check . --fix
-```
-
-## ماشین حالت رزرو
-
-| وضعیت | معنا | گذارهای مجاز |
-|---|---|---|
-| `DRAFT` | قصد در حال تکمیل | `VALIDATE` → `VALIDATED`، `VALIDATION_FAILED` → `REJECTED` |
-| `VALIDATED` | اعتبارسنجی محلی و قیمت تازه | `REQUEST_APPROVAL` → `AWAITING_APPROVAL`، `QUOTE_EXPIRED` → `EXPIRED` |
-| `AWAITING_APPROVAL` | منتظر تأیید صریح انسان | `APPROVE_AND_SUBMIT` → `SUBMITTING`، `DECLINE` → `CANCELLED`، `QUOTE_EXPIRED` → `EXPIRED` |
-| `SUBMITTING` | یک تلاش در جریان | `ACK_CONFIRMED`/`ACK_HELD`/`ACK_REJECTED`، `ACK_UNKNOWN` → `SUBMISSION_UNKNOWN`، خطاهای بی‌اثر → `AWAITING_APPROVAL` |
-| `SUBMISSION_UNKNOWN` | نتیجه نامعلوم؛ **قفل** | فقط `RECONCILE_*` |
-| `HELD` | صندلی نگه داشته شده (فقط مدل‌سازی) | `PAY` → `PAYMENT_PENDING`، `HOLD_EXPIRED` → `EXPIRED` |
-| `PAYMENT_PENDING` | پرداخت در انتظار تأیید (فقط مدل‌سازی) | `PAYMENT_CONFIRMED` → `CONFIRMED`، `PAYMENT_FAILED` → `REJECTED`، `PAYMENT_AMBIGUOUS` → `SUBMISSION_UNKNOWN` |
-| `CONFIRMED` | پایانی؛ فقط با شمارهٔ مرجع ارائه‌دهنده | — |
-| `REJECTED` | پایانی؛ فقط با دلیل | — |
-| `EXPIRED` | پایانی | — |
-| `CANCELLED` | پایانی | — |
-
-### قواعد ایمنی که تست‌ها تضمین می‌کنند
-
-1. هیچ گذاری خارج از جدول مجاز نیست؛ هر جفت «وضعیت × رویداد» دیگر، خطای
-   `IllegalTransition` می‌دهد.
-2. وضعیت‌های پایانی هیچ گذار خروجی ندارند.
-3. رزرو بدون تأیید انسانی، بدون مجوز ارائه‌دهنده و با قیمت منقضی ارسال نمی‌شود.
-4. اگر برای همان قصد رزرو، رزرو باز دیگری وجود داشته باشد، ارسال دوم رد می‌شود.
-5. تأیید رزرو فقط با «شمارهٔ مرجع ارائه‌دهنده» ممکن است؛ هیچ مسیر دیگری به
-   `CONFIRMED` وجود ندارد.
-6. نتیجهٔ نامعلوم (`SUBMISSION_UNKNOWN`) هرگز به‌طور خودکار دوباره ارسال نمی‌شود و
-   تنها با شواهد (جست‌وجوی مجاز ارائه‌دهنده یا تأیید ثبت‌شدهٔ اپراتور) حل می‌شود.
-7. کلید idempotency از ورودی‌های منطقی ساخته می‌شود: تلاش دوباره همان کلید را
-   می‌دهد و تلاش جدید (epoch تازه) کلید تازه.
-
-## داده‌های مسافر
-
-در این فاز هیچ داده شخصی ذخیره نمی‌شود. دامنه فقط یک توکن مستعار (`PassengerRef`)
-می‌بیند؛ نگاشت توکن به مسافر واقعی و رمزنگاری آن، کار آداپتور هویت در فازهای بعد است.
-
-## تاریخ و تقویم
-
-مدل‌ها از `datetime.date` و زمان‌های timezone-aware استفاده می‌کنند. نمایش شمسی
-(جلالی) و تبدیل آن در لبه‌های سیستم انجام می‌شود؛ قالب تاریخ در قرارداد رسمی رجا
-هنوز ناشناخته است.
-
-## محدودیت‌های شناخته‌شده
-
-- هیچ رابط مجاز رجا وجود ندارد؛ آداپتور واقعی تا دریافت قرارداد کتبی ساخته نمی‌شود.
-- وضعیت‌های `HELD` و `PAYMENT_PENDING` فقط مدل شده‌اند و هیچ پرداختی پیاده‌سازی نشده است؛
-  شبیه‌ساز `pay=False` اعلام می‌کند.
-- هماهنگ‌سازی در P3 پیاده‌سازی شده است، ولی پایش موجودی و زمان‌بند وجود ندارند؛
-  نگاشت نتیجهٔ ارائه‌دهنده به رویداد در `application/mapping.py` قرار دارد.
-- وضعیت سرویس (انبار، دفتر تضاد، قرنطینه) فقط درون فرایند است و با پایان فرایند
-  از بین می‌رود؛ بازیابی پایدار و کنترل همروندی وجود ندارد.
-- پروتکل ارائه‌دهنده همگام (sync) است. آداپتور واقعی که I/O شبکه انجام می‌دهد باید آن را
-  بیرون از حلقهٔ رویداد اجرا کند؛ تبدیل پروتکل به async یک تصمیم باز برای فاز هماهنگ‌سازی است.
-- قاعدهٔ وابستگی دامنه با `tests/unit/test_domain_purity.py` و مرزهای P2 با
-  `tests/unit/test_layer_boundaries.py` به‌صورت ماشینی بررسی می‌شوند.
-## فاز P3: لایهٔ هماهنگ‌سازی
-
-### سرویس (`application/service.py`)
-
-لایهٔ هماهنگ‌سازی، مدل‌های دامنه و قرارداد ارائه‌دهنده را به هم وصل می‌کند. هیچ
-ساعت، شبکه، پایگاه‌داده یا حلقهٔ رویداد در آن وجود ندارد: هر فرمان زمان `now` را از
-فراخواننده می‌گیرد و حداکثر یک فراخوانی ارائه‌دهنده انجام می‌دهد.
-
-| فرمان | نقش |
+| Command | Role |
 |---|---|
-| `find_offers(preferences, *, now)` | جست‌وجوی ارائه‌دهنده و نگه‌داشتن پیشنهادهای واجد شرایط |
-| `open_quote(offer, *, quota_class, preferences, passenger_refs, quote_expires_at, now, fare_irr=None)` | ساخت قصد و رزرو تا `AWAITING_APPROVAL` |
-| `approve_and_submit(reservation_id, *, approval, now)` | تنها مسیر ارسال؛ یک بار، با گاردهای دامنه |
-| `reconcile(reservation_id, *, now)` | حل ابهام فقط با `lookup` |
-| `decline(reservation_id, *, now)` | لغو پیش از ارسال |
-| `expire_quote(reservation_id, *, now)` | انقضای صریح قیمت |
-| `get(reservation_id)`، `open_reservations()` | خواندن، همراه با لایه‌های تضاد/قرنطینه |
+| `find_offers(preferences, *, now)` | Provider search and keep eligible offers |
+| `open_quote(offer, *, quota_class, preferences, passenger_refs, quote_expires_at, now, fare_irr=None)` | Build intent and reservation up to `AWAITING_APPROVAL` |
+| `approve_and_submit(reservation_id, *, approval, now)` | sole submit path; once, with domain guards |
+| `reconcile(reservation_id, *, now)` | resolve ambiguity via `lookup` only |
+| `decline(reservation_id, *, now)` | cancel before submit |
+| `expire_quote(reservation_id, *, now)` | explicit price expiry |
+| `get(reservation_id)`, `open_reservations()` | read, with conflict/quarantine layers |
 
-`fare_irr` در قصد و در `ReservationIntent` **نرخ هر مسافر** است و باید با نرخ سرویس
-برابر باشد؛ مجموع کرایهٔ مهمانی از `ReservationRecord.total_fare_irr` محاسبه می‌شود و
-هرگز ذخیره نمی‌شود.
+`fare_irr` in intent and `ReservationIntent` is the **per-passenger rate** and must match the service rate; the total administrative fee is computed from `ReservationRecord.total_fare_irr` and is never stored.
 
-### قواعد ایمنی
+### Safety Rules (enforced by tests)
 
-1. رکورد `SUBMITTING` **پیش از** فراخوانی `provider.submit` ذخیره می‌شود؛ اگر این
-   ذخیره شکست بخورد، هیچ ارسالی انجام نمی‌شود.
-2. هیچ تلاش دوبارهٔ خودکار وجود ندارد. نتیجهٔ نامعلوم، استثنا در حین ارسال، یا پاسخ
-   غیرقابل‌نگاشت، رزرو را در `SUBMISSION_UNKNOWN` متوقف می‌کند و ارسال دوم رخ نمی‌دهد.
-3. خطای اعتبارسنجی یا شکست پیش از ارسال (تأیید نامعتبر، قیمت منقضی، مجوز نداشتن
-   ارائه‌دهنده، شکست ذخیرهٔ اولیه) هرگز به `SUBMISSION_UNKNOWN` تبدیل نمی‌شود.
-4. `reconcile` فقط `lookup` می‌کند. استثنای `lookup` هرگز `NOT_FOUND` خوانده نمی‌شود و
-   به‌صورت `LookupFailed` با علت اصلی بالا می‌رود.
-5. در ورود از `SUBMITTING`، وضعیت `SUBMISSION_UNKNOWN` **پیش از** `lookup` ذخیره
-   می‌شود؛ پس شکست بعدی همیشه یک وضعیت قابل تطبیق باقی می‌گذارد.
-6. اگر ذخیرهٔ پاسخ نهایی شکست بخورد، رکورد قبلی دست‌نخورده می‌ماند و ارسال دوباره رخ
-   نمی‌دهد.
-7. `ReservationPending` به `SUBMISSION_UNKNOWN` نگاشت می‌شود و نتیجهٔ خام در
-   `last_outcome` می‌ماند.
-8. `ReservationHeld` در تطبیق «غیرقطعی» است: مهلت آن در `observed_hold_expires_at` و در
-   شواهد ثبت می‌شود، ولی رزرو تأییدشده نیست.
-9. `save` برای هر رکورد اتمیک است: یا رکورد کامل جایگزین می‌شود، یا خطا بالا می‌رود و
-   رکورد قبلی بدون تغییر می‌ماند.
+1. `SUBMITTING` record is **saved before** the sole `provider.submit` call; if this save fails, nothing is sent.
+2. No automatic resubmission. Unknown outcome, an exception during submit, or an unmappable response leaves the reservation in `SUBMISSION_UNKNOWN` and no second submission occurs.
+3. Pre-submit validation failures or persistence failures never become `SUBMISSION_UNKNOWN` and never call the provider.
+4. `reconcile` only does `lookup`. A `lookup` exception never reads `NOT_FOUND`; it raises `LookupFailed` with the real cause.
+5. On `SUBMITTING` entry, `SUBMISSION_UNKNOWN` is **saved before** `lookup`; so a later failure always leaves a recoverable state.
+6. If the final-record save fails, the prior record remains unchanged and no resubmission occurs.
+7. `ReservationPending` maps to `SUBMISSION_UNKNOWN` and the raw outcome stays in `last_outcome`.
+8. `ReservationHeld` in reconciliation is "inconclusive": its deadline is in `observed_hold_expires_at` and in the evidence, but the reservation is not confirmed.
+9. `save` per record is atomic: either the full record replaces the prior one, or an error is raised and the prior record is left unchanged.
 
-### تضاد ارسال تکراری
+### Duplicate Submission Attempt
 
-هنگام `DuplicateSubmissionAttempt` سه حالت ممکن است:
+When `DuplicateSubmissionAttempt` occurs three states are possible:
 
-| وضعیت | خطا | `conflict_reference` | عامل مسدودکننده |
+| Status | Error | `conflict_reference` | Blocking factor |
 |---|---|---|---|
-| قفل در دفتر تضاد ثبت شد | `DuplicateSubmissionBlocked` | مرجع ارائه‌دهنده | دفتر تضاد |
-| قفل ثبت شد، آینه ذخیره نشد | `ConflictLatchFailed(latched=True)` | مرجع ارائه‌دهنده | دفتر تضاد |
-| قفل ثبت نشد | `ConflictLatchFailed(latched=False)` | `None` | قرنطینهٔ درون‌فرایندی |
+| Conflict latch recorded | `DuplicateSubmissionBlocked` | Provider reference | Conflict ledger |
+| Latch recorded, mirror not saved | `ConflictLatchFailed(latched=True)` | Provider reference | Conflict ledger |
+| Latch not recorded | `ConflictLatchFailed(latched=False)` | `None` | In-process quarantine |
 
-پس از هر سه حالت، همهٔ فرمان‌های تغییردهنده — از جمله `reconcile` — رد می‌شوند. در
-حالت سوم `ReservationQuarantined` بالا می‌رود و قرنطینه هرگز به‌عنوان «قفل ثبت‌شده»
-معرفی نمی‌شود. خواندن (`get`، `open_reservations`) مجاز است و وضعیت قفل/قرنطینه را
-نشان می‌دهد.
+After any of these, **all** mutating commands — including `reconcile` — are rejected. In the third state `ReservationQuarantined` is raised and quarantine is never presented as a "recorded latch". Reading (`get`, `open_reservations`) is allowed and shows the lock/quarantine status.
 
-### تعهدهای آداپتور (قرارداد ارائه‌دهنده)
+### Adapter Obligations (Provider Contract)
 
-این تمایزها کار آداپتور است، نه سرویس:
+These distinctions are the adapter's responsibility, not the service's:
 
-- `ProviderUnavailable` فقط وقتی مجاز است که آداپتور تضمین کند درخواست پردازش نشده و
-  هیچ رزروی ساخته نشده است.
-- تایم‌اوت پس از ارسال، قطع اتصال، یا از دست رفتن تأییدیه باید
-  `SubmissionOutcomeUnknown` باشد، نه `ProviderUnavailable`.
-- `ReservationRejected` فقط وقتی مجاز است که آداپتور بتواند اثبات کند رزروی ساخته
-  نشده است.
+- `ProviderUnavailable` only when the adapter can guarantee the request was **not** processed and no reservation was made.
+- Post-send timeout, connection reset, or lost acknowledgement must be `SubmissionOutcomeUnknown`, never `ProviderUnavailable` or `ReservationRejected` unless the adapter can definitively confirm no booking was made.
+- `ReservationRejected` only when the adapter can prove no reservation was made.
 
-### نمونهٔ استفاده
+### Sample Usage
 
 ```python
 from raja_assistant.application.conflicts import InMemoryConflictLedger, Quarantine
@@ -315,7 +185,7 @@ from raja_assistant.application.store import InMemoryReservationStore
 from raja_assistant.domain.reservation.guards import Approval
 
 service = ReservationService(
-    provider=provider,  # در P3 فقط شبیه‌ساز
+    provider=provider,        # in P3 only the simulator
     store=InMemoryReservationStore(),
     ledger=InMemoryConflictLedger(),
     quarantine=Quarantine(),
@@ -341,25 +211,122 @@ confirmed = service.approve_and_submit(
 )
 ```
 
-### آزمون‌ها
+### Tests
 
-- `tests/unit/application/test_service.py`: جریان کامل تا `CONFIRMED`، ترتیب
-  ذخیره/ارسال، عدم ارسال دوباره، ردهای پیش از ارسال، قفل تضاد و قرنطینه، اتمیک‌بودن
-  ذخیره، و همهٔ شاخه‌های تطبیق (استثنا، پاسخ غیرقابل‌نگاشت، نگه‌داری، در انتظار،
-  ارائه‌دهندهٔ در دسترس نبودن).
-- `tests/unit/application/test_structure.py`: اجرای بررسی ساختاری و کنترل‌های منفی —
-  فرمان ثبت‌نشده، نوشتن مستقیم در انبار، مسیر دوم `submit`، و فرمان تغییردهندهٔ بدون
-  گارد رد می‌شوند.
+- `tests/unit/application/test_service.py`: full workflow to `CONFIRMED`, save-before-submit order, no resubmission, pre-submit rejections, conflict latch and quarantine, atomic save, and all reconciliation branches (exception, unmappable result, held, pending, unavailable provider).
+- `tests/unit/application/test_structure.py`: structural check and negative controls — unregistered mutator, direct store-write path, additional `submit` call site, and clock/sleep prohibition are all detected and fail.
+- `tests/unit/application/test_offer_selection.py`: offer eligibility, passenger references, quote expiry, invalid/incompatible inputs safely handled.
+- `tests/unit/application/test_mapping.py`: mapping from provider outcomes to state events.
+- `tests/unit/domain/`: state machine, guards, idempotency invariants.
+- `tests/unit/test_layer_boundaries.py`: prohibitions on network, clock, coincidence, directly exercised.
+- `tests/conftest.py`: network guard monkeypatches `socket.*` to raise `AssertionError("tests must not open network connections")` for every test.
 
-### محدودیت‌های باقی‌مانده (صریح)
+### Known Limitations (explicit)
 
-- انبار، دفتر تضاد و قرنطینه فقط درون فرایند هستند و با پایان فرایند از بین می‌روند؛
-  بازیابی پس از سقوط پیاده‌سازی نشده است.
-- ذخیرهٔ `SUBMITTING` پیش از ارسال یک تضمین ترتیب درون‌فرایندی است، نه بازیابی پایدار.
-- هیچ کنترل همروندی وجود ندارد؛ اتمیک‌بودن `save` مربوط به هر فراخوانی است، نه یک
-  تراکنش روی خواندن‑تغییر‑نوشتن.
-- معنای «بدون اثر جانبی» برای `ProviderUnavailable` تعهد آداپتور است و سرویس نمی‌تواند
-  آن را بررسی کند.
-- گذاری از `SUBMISSION_UNKNOWN` به `HELD` وجود ندارد؛ مهلت نگه‌داری در شواهد ثبت
-  می‌شود ولی وضعیت تغییر نمی‌کند.
-- هیچ اتصال واقعی به رجا، پرداخت، پایگاه‌دادهٔ ماندگار یا رابط کاربری وجود ندارد.
+- No Raja adapter exists; a real one must be provided with a documented, written contract before any network code is written.
+- `HELD` and `PAYMENT_PENDING` states are modelled but no payment is implemented; the simulator declares `pay=False`.
+- Orchestration in P3 is implemented, but balance tracking and timeout are absent; provider-result-to-event mapping lives in `application/mapping.py`.
+- Service (conflict ledger, quarantine, store) is **process-local** and vanishes with the process; durable crash recovery is not implemented.
+- Provider protocol is **sync**. A real adapter that does I/O must run it outside the event loop; converting the protocol to `async` is a deliberate decision for a later phase.
+- Domain dependency rule enforced by `tests/unit/test_domain_purity.py`; P2 boundary checks by `tests/unit/test_layer_boundaries.py`.
+
+## Passenger Data
+
+In this phase no personal data is stored. The domain only sees an alias token (`PassengerRef`); mapping a token to a real passenger and encrypting it is an identity adapter task for later phases.
+
+## Date and Calendar
+
+Models use `datetime.date` and timezone-aware timestamps. Persian (Jalali) display and conversion are done at the system edge; the official Raja date format is still unknown.
+
+## Current Limitations (explicit)
+
+- No Raja adapter exists; a real one must be provided with a documented, written contract before any network code is written.
+- `HELD` and `PAYMENT_PENDING` are modelled but no payment is implemented; the simulator reports `pay=False`.
+- Orchestration in P3 is implemented, but balance tracking and timeout are absent; provider-result mapping lives in `application/mapping.py`.
+- Service (conflict ledger, quarantine, store) is **process-local** and vanishes when the process ends; durable crash recovery is not implemented.
+- Provider protocol is **sync**. A real adapter that does I/O must run it outside the event loop; converting to `async` is a deliberate decision for a later phase.
+- Domain dependency rule enforced by `tests/unit/test_domain_purity.py`; P2 boundary checks by `tests/unit/test_layer_boundaries.py`.
+
+## Installation
+
+### Windows PowerShell
+
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+ pip install --upgrade pip
+ pip install -e ".[dev]"
+```
+
+### macOS / Linux
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -e ".[dev]"
+```
+
+If `py -3.12` or `python3.12` is not available, use the respective `python3.12+` or newer version installed on the system.
+
+## Running the Simulated CLI
+
+```bash
+python -m raja_assistant
+```
+
+The CLI presents a Persian-text menu for entering trip details and starting the reservation workflow. The workflow uses the existing `SimulatedReservationProvider` and displays results clearly as **SIMULATED** — never as a real Raja booking.
+
+## Running Tests
+
+```bash
+python -m pytest -v       # 408 passed in ~1.5s
+python -m pytest -q       # succinct pass/fail
+python -m ruff check .    # all checks pass
+```
+
+No test requires internet access. `tests/conftest.py` blocks all socket creation; any accidental network attempt fails loudly with `AssertionError`.
+
+## Code Quality
+
+```bash
+python -m ruff check .
+python -m ruff check . --fix   # auto-fixable only
+```
+
+## Reservation State Machine (11 States)
+
+| Status | Meaning | Allowed Transitions |
+|---|---|---|
+| `DRAFT` | Intent being completed | `VALIDATE` → `VALIDATED`, `VALIDATION_FAILED` → `REJECTED` |
+| `VALIDATED` | Local validation and fresh price | `REQUEST_APPROVAL` → `AWAITING_APPROVAL`, `QUOTE_EXPIRED` → `EXPIRED` |
+| `AWAITING_APPROVAL` | Waiting for explicit human approval | `APPROVE_AND_SUBMIT` → `SUBMITTING`, `DECLINE` → `CANCELLED`, `QUOTE_EXPIRED` → `EXPIRED` |
+| `SUBMITTING` | A submit in progress | `ACK_CONFIRMED`/`ACK_HELD`/`ACK_REJECTED`, `ACK_UNKNOWN` → `SUBMISSION_UNKNOWN`, ineffective errors → `AWAITING_APPROVAL` |
+| `SUBMISSION_UNKNOWN` | Unknown result; **locked** | only `RECONCILE_*` |
+| `HELD` | Seat held (model-only) | `PAY` → `PAYMENT_PENDING`, `HOLD_EXPIRED` → `EXPIRED` |
+| `PAYMENT_PENDING` | Payment awaited (model-only) | `PAYMENT_CONFIRMED` → `CONFIRMED`, `PAYMENT_FAILED` → `REJECTED`, `PAYMENT_AMBIGUOUS` → `SUBMISSION_UNKNOWN` |
+| `CONFIRMED` | Final; only with provider reference | — |
+| `REJECTED` | Final; only with reason | — |
+| `EXPIRED` | Final | — |
+| `CANCELLED` | Final | — |
+
+## How to Run the Persian CLI
+
+```bash
+python -m raja_assistant
+```
+
+The CLI shows a simple Persian menu:
+
+1. **Start reservation workflow** — Enter origin, destination, travel date (validated YYYY-MM-DD), class, and launch the search → quote → approve → submit flow. All results are labeled **SIMULATED**; the final line always includes `--- Sistem: only simulation ---`.
+2. **Exit** — Quit the application.
+
+Invalid or malformed dates are caught with a clear Persian error and the user is prompted again. The date is validated before the reservation workflow starts.
+
+## Contact / Handoff
+
+This is a bounded Phase P3 artefact. Real Raja integration requires an authorized, documented API contract and is not implemented in this codebase. For questions about the project structure, the provider protocol, or the state machine, refer to `PROVIDER_INTEGRATION.md` in this repository or the inline source comments.
+
+---
+
+**No LICENSE file is currently included in this repository. No usage permissions are claimed or implied.**
