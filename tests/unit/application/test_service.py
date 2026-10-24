@@ -36,7 +36,7 @@ from raja_assistant.application.ports.models import (
     ReservationPending,
     ReservationRejected,
 )
-from raja_assistant.application.service import ReservationService
+from raja_assistant.application.service import UNCLASSIFIED_ANSWER, ReservationService
 from raja_assistant.application.store import InMemoryReservationStore, SequentialIdFactory
 from raja_assistant.domain.errors import (
     GuardReason,
@@ -726,7 +726,42 @@ def test_expire_quote_requires_the_deadline_and_then_closes_it() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# 18. A failed final reconciliation save is retryable
+# 18. A received but unmappable submission result is mapped as unknown
+# --------------------------------------------------------------------------- #
+
+
+def test_a_received_but_unmappable_submission_result_is_mapped_as_unknown() -> None:
+    harness = build_service()
+    view = harness.quote()
+    reservation_id = view.reservation.reservation_id
+    harness.provider.submit_result = object()
+
+    parked = harness.service.approve_and_submit(
+        reservation_id, approval=approval_for(view), now=NOW
+    )
+
+    # A result that no submission mapping can use must still park the
+    # reservation as ambiguous, not as booked, not as rejected, and not as
+    # silently swallowed.
+    assert parked.state is ReservationState.SUBMISSION_UNKNOWN
+    assert parked.record.last_detail == UNCLASSIFIED_ANSWER
+    assert parked.record.last_outcome is None
+    assert parked.reservation.provider_reference is None
+    assert parked.record.observed_hold_expires_at is None
+    assert parked.reservation.evidence_note is None
+    assert harness.provider.submit_calls == 1
+
+    # A second attempt is still rejected and makes no extra submit call.
+    with pytest.raises(IllegalTransition):
+        harness.service.approve_and_submit(
+            reservation_id, approval=approval_for(view), now=NOW
+        )
+
+    assert harness.provider.submit_calls == 1
+
+
+# --------------------------------------------------------------------------- #
+# 19. Originally written # 18. A failed final reconciliation save is retryable
 # --------------------------------------------------------------------------- #
 
 
