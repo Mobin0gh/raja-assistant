@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "raja-assistant"
-version = "0.2.0"
-description = "Local train-ticket reservation assistant: domain core and provider port (Phase P2)"
+version = "0.3.0"
+description = "Local train-ticket reservation assistant: domain core, provider port (Phase P2), and orchestration service (Phase P3)"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []

@@ -296,7 +296,12 @@ class ReservationPending:
 
 @dataclass(frozen=True, slots=True)
 class ReservationRejected:
-    """A definitive refusal. Nothing was booked and nothing is owed."""
+    """A definitive refusal the adapter has established: nothing was booked.
+
+    Only an adapter that can confirm no reservation was made may return this. An
+    answer whose effect is unclear is ``SubmissionOutcomeUnknown``, never a
+    rejection; reading it as one is how a real booking gets forgotten.
+    """
 
     reason: str
     observed_at: datetime
@@ -326,8 +331,10 @@ class ReservationNotFound:
 class SubmissionOutcomeUnknown:
     """The provider may or may not have acted, and its answer cannot be trusted.
 
-    This is the most dangerous result in the system. It never licenses a retry:
-    the only permitted next step is a lookup with the same ``client_reference``.
+    This is the result for a post-send timeout, a connection reset, or a lost
+    acknowledgement: cases where the request may have been processed. It is the
+    most dangerous result in the system and never licenses a retry — the only
+    permitted next step is a lookup with the same ``client_reference``.
     """
 
     client_reference: str
@@ -345,8 +352,11 @@ class SubmissionOutcomeUnknown:
 class ProviderUnavailable:
     """A temporary condition: the provider could not serve the call at all.
 
-    Nothing is known about the underlying reservation, so this result must never
-    be read as "rejected" or as "not booked".
+    An adapter may return this only when it can guarantee the request was **not**
+    processed (no side effect). A post-send timeout or a lost acknowledgement is
+    ``SubmissionOutcomeUnknown`` instead. Nothing is known about the underlying
+    reservation, so this result must never be read as "rejected" or as "not
+    booked".
     """
 
     observed_at: datetime
